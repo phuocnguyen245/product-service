@@ -1,14 +1,28 @@
 import { Injectable } from '@nestjs/common';
-import { CategoryRepository } from './category.repository';
 import { Category } from '@prisma/client';
-import { prisma } from 'src/config/prisma';
+import { slugify } from 'src/utils/slugify';
+import { CategoryRepository } from './category.repository';
+import { PrismaService } from 'src/config/prisma';
 
 @Injectable()
 export class CategoryService {
-  private repository: CategoryRepository;
+  constructor(
+    private repository: CategoryRepository,
+    private prisma: PrismaService,
+  ) {}
 
   async create(name: string, parentId?: string): Promise<Category> {
-    return await prisma.$transaction(async (tx) => {
+    return await this.prisma.$transaction(async (tx) => {
+      const slug = slugify(name);
+
+      const existingCategory = await tx.category.findUnique({
+        where: { slug },
+      });
+
+      if (existingCategory) {
+        throw new Error('Category with same name already exists');
+      }
+
       if (parentId) {
         const parent = await tx.category.findUnique({
           where: { id: parentId },
@@ -29,7 +43,7 @@ export class CategoryService {
         return await tx.category.create({
           data: {
             name,
-            slug: name.toLowerCase().replace(/ /g, '-'),
+            slug,
             lft: parent.rgt,
             rgt: parent.rgt + 1,
             level: parent.level + 1,
@@ -43,6 +57,7 @@ export class CategoryService {
         return await tx.category.create({
           data: {
             name,
+            slug,
             lft: newLft,
             rgt: newLft + 1,
             level: 0,
@@ -78,7 +93,7 @@ export class CategoryService {
   }
 
   async delete(id: string): Promise<{ message: string }> {
-    return await prisma.$transaction(async (tx) => {
+    return await this.prisma.$transaction(async (tx) => {
       const node = await tx.category.findUnique({ where: { id } });
       if (!node) {
         throw new Error('Category not found');
