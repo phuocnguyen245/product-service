@@ -1,3 +1,4 @@
+import { IProductWithVariant } from './product.d';
 import {
   Body,
   Controller,
@@ -8,29 +9,20 @@ import {
   Put,
   Query,
 } from '@nestjs/common';
-import { IProductWithVariant } from './product';
+import { BaseParams } from './product';
 import { ProductService } from './product.service';
+import { GrpcMethod } from '@nestjs/microservices';
 
 @Controller('product')
 export class ProductController {
   constructor(private productService: ProductService) {}
 
-  @Get('')
-  async getProducts(
-    @Query('limit') limit: number,
-    @Query('page') page: number,
-    @Query('search') search: string,
-    @Query('from') from: string,
-    @Query('to') to: string,
-  ) {
+  @GrpcMethod('ProductService', 'GetProducts')
+  async getProducts(data: BaseParams) {
     try {
-      const products = await this.productService.getProducts({
-        limit,
-        page,
-        search,
-        from,
-        to,
-      });
+      const products = await this.productService.getProducts(data);
+      console.log(JSON.stringify(products));
+
       return products;
     } catch (error) {
       console.log(error);
@@ -78,9 +70,15 @@ export class ProductController {
   }
 
   @Delete(':slug')
-  async deleteProduct(@Param('slug') slug: string) {
+  async deleteProduct(
+    @Param('slug') slug: string,
+    @Query('userId') userId: string,
+  ) {
     try {
-      const deletedProduct = await this.productService.deleteProduct(slug);
+      const deletedProduct = await this.productService.deleteProduct({
+        slug,
+        userId,
+      });
       return deletedProduct;
     } catch (error) {
       console.log(error);

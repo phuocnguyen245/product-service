@@ -21,19 +21,19 @@ model Category {
 }
 
 model Product {
-  id             String           @id @default(auto()) @map("_id") @db.ObjectId
-  name           String
-  slug           String           @unique
-  description    String
-  categoryId     String           @db.ObjectId
-  category       Category         @relation(fields: [categoryId], references: [id])
-  productVariant ProductVariant[]
-  status         String
-  tagIds         String[]         @db.ObjectId
-  tags           Tag[]            @relation(fields: [tagIds], references: [id])
-  isDeleted      Boolean          @default(false)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
+  id              String           @id @default(auto()) @map("_id") @db.ObjectId
+  userId          String           @db.ObjectId              // Thêm userId để xác định người sở hữu sản phẩm
+  name            String
+  slug            String           @unique
+  description     String
+  categoryId      String           @db.ObjectId
+  category        Category         @relation(fields: [categoryId], references: [id])
+  productVariants ProductVariant[]
+  status          String
+  tagIds          String[]         @db.ObjectId
+  isDeleted       Boolean          @default(false)
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
 
 model ProductVariant {
@@ -41,9 +41,9 @@ model ProductVariant {
   productId                 String                     @db.ObjectId
   product                   Product                    @relation(fields: [productId], references: [id])
   name                      String
-  value                     String
   sku                       String
   status                    String
+  attributes                Json                       // Lưu trữ mảng các thuộc tính: [{ "name": "size", "value": "M", "price": 10 }, { "name": "color", "value": "red", "price": 0 }, { "name": "material", "value": "cotton", "price": 5 }]
   isDeleted                 Boolean                    @default(false)
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
@@ -56,15 +56,16 @@ model ProductVariantIngredient {
   productVariant   ProductVariant @relation(fields: [productVariantId], references: [id])
   ingredientId     String         @db.ObjectId
   ingredient       Ingredient     @relation(fields: [ingredientId], references: [id])
-  quantity         Float // Lượng nguyên liệu dùng cho variant cụ thể (ví dụ: 10.0 ml)
+  quantity         Float          // Lượng nguyên liệu dùng cho variant cụ thể (ví dụ: 10.0 ml)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 }
 
 model Ingredient {
   id                        String                     @id @default(auto()) @map("_id") @db.ObjectId
+  userId                    String                     @db.ObjectId              // Thêm userId để xác định người sở hữu nguyên liệu
   name                      String
-  unit                      String // Ví dụ: ml, g, kg, v.v.
+  unit                      String                     // Ví dụ: ml, g, kg, v.v.
   description               String
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
@@ -74,8 +75,7 @@ model Ingredient {
 model Tag {
   id         String    @id @default(auto()) @map("_id") @db.ObjectId
   name       String
-  productIds String[]  @db.ObjectId
-  products   Product[] @relation(fields: [productIds], references: [id])
+  productIds String[]  @db.ObjectId    // Lưu mảng ObjectId của sản phẩm liên quan
   isDeleted  Boolean   @default(false)
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt

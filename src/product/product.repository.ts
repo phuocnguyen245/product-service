@@ -1,4 +1,4 @@
-import { PrismaService } from 'src/config/prisma';
+import { PrismaService } from '../config/prisma';
 
 class ProductRepository {
   constructor(private prisma: PrismaService) {}

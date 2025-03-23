@@ -1,14 +1,15 @@
+import { IProductWithVariant } from './product.d';
 import {
   BadRequestException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { Prisma, Product } from '@prisma/client';
-import { PrismaService } from 'src/config/prisma';
-import { slugify } from 'src/utils/slugify';
-import { BaseParams, IProductWithVariant } from './product';
+import { PrismaService } from '../config/prisma';
+import { slugify } from '../utils/slugify';
+import { BaseParams } from './product';
 import ProductRepository from './product.repository';
-
+import constants from '../constants';
 @Injectable()
 export class ProductService {
   constructor(
@@ -17,7 +18,6 @@ export class ProductService {
   ) {}
 
   async createProduct(productPayload: IProductWithVariant) {
-    const { productVariant, ...rest } = productPayload;
     const newProductWithVariant = await this.prisma.$transaction(async (tx) => {
       const slug = slugify(productPayload.name);
 
@@ -28,67 +28,65 @@ export class ProductService {
       }
 
       const newProduct = await tx.product.create({
-        data: { ...rest },
+        data: productPayload,
       });
 
-      const variants = await Promise.all(
-        productVariant.map((item) =>
-          tx.productVariant.create({
-            data: { ...item, productId: newProduct.id },
-          }),
-        ),
-      );
-      return { ...newProduct, productVariant: variants };
+      return newProduct;
     });
     return newProductWithVariant;
   }
 
-  async getProducts({ page, limit, search, from, to }: BaseParams) {
-    const whereCondition: Prisma.ProductWhereInput = {
-      isDeleted: false,
-      name: { contains: search },
-      OR: [
-        {
-          updatedAt: { gte: new Date(from), lte: new Date(to) },
-        },
-      ],
-    };
+  async getProducts({ userId, page, limit, search, from, to }: BaseParams) {
+    try {
+      const whereCondition: Prisma.ProductWhereInput = {
+        userId,
+        isDeleted: false,
+        ...(search ? { name: { contains: search } } : {}),
+      };
 
-    const selectProductPromise = this.prisma.product.findMany({
-      select: {
-        id: true,
-        name: true,
-        description: true,
-        productVariant: {
+      if (from || to) {
+        whereCondition.createdAt = {
+          gte: new Date(from || constants.FROM),
+          lte: new Date(to || constants.TO),
+        };
+      }
+
+      const [products, total] = await Promise.all([
+        this.prisma.product.findMany({
           select: {
             id: true,
             name: true,
-            sku: true,
-            value: true,
-            status: true,
+            description: true,
+            slug: true,
+            productVariants: {
+              select: {
+                id: true,
+                name: true,
+                sku: true,
+                status: true,
+                attributes: true,
+              },
+              where: { isDeleted: false },
+            },
           },
-          where: { isDeleted: false },
-        },
-      },
-      where: whereCondition,
-      skip: page * limit,
-      take: limit,
-    });
-    const countProductPromise = this.prisma.product.count({
-      where: whereCondition,
-    });
+          where: whereCondition,
+          skip: page * limit,
+          take: limit,
+        }),
+        this.prisma.product.count({ where: whereCondition }),
+      ]);
 
-    const [products, count] = await Promise.all([
-      selectProductPromise,
-      countProductPromise,
-    ]);
+      // Đảm bảo rằng mảng sản phẩm và mảng productVariants của từng sản phẩm không null
+      const safeProducts = (products || []).map((product) => ({
+        ...product,
+        productVariants: product.productVariants || [],
+      }));
 
-    return {
-      data: products,
-      total: count,
-      page,
-      limit,
-    };
+      return { data: safeProducts, total, page, limit };
+    } catch (error) {
+      console.error('Service error:', error);
+      return { data: [], total: 0, page, limit };
+    }
   }
 
   async updateProduct(product: Product) {
@@ -96,6 +94,12 @@ export class ProductService {
 
     if (!existingProduct) {
       throw new NotFoundException('Product not found');
+    }
+
+    if (existingProduct.userId !== product.userId) {
+      throw new BadRequestException(
+        'You are not authorized to update this product',
+      );
     }
 
     let slug = existingProduct.slug;
@@ -121,13 +125,14 @@ export class ProductService {
         id: true,
         name: true,
         description: true,
-        productVariant: {
+        slug: true,
+        productVariants: {
           select: {
             id: true,
             name: true,
             sku: true,
-            value: true,
             status: true,
+            attributes: true,
           },
           where: { isDeleted: false },
         },
@@ -140,11 +145,17 @@ export class ProductService {
     return product;
   }
 
-  async deleteProduct(slug: string) {
+  async deleteProduct({ slug, userId }: { slug: string; userId: string }) {
     const existingProduct = await this.productRepo.getProductBySlug(slug);
 
     if (!existingProduct) {
       throw new NotFoundException('Product not found');
+    }
+
+    if (existingProduct.userId !== userId) {
+      throw new BadRequestException(
+        'You are not authorized to delete this product',
+      );
     }
 
     return await this.productRepo.deleteProductBySlug(slug);
