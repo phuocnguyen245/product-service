@@ -8,6 +8,8 @@ service ProductService {
   rpc CreateProduct (CreateProductRequest) returns (Product) {}
   rpc UpdateProduct (UpdateProductRequest) returns (Product) {}
   rpc DeleteProduct (DeleteProductRequest) returns (Product) {}
+
+  rpc CreateIngredient(Ingredient) returns (Ingredient) {}
 }
 
 message Product {
@@ -29,6 +31,13 @@ message ProductVariant {
   string status = 4;
   map<string, string> attributes = 5;
   bool isDeleted = 6;
+}
+
+message Ingredient{
+  string id = 1;
+  string userId = 2;
+  string name = 3;
+  string unit = 4;
 }
 
 message GetProductRequest {

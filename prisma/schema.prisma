@@ -43,7 +43,20 @@ model ProductVariant {
   name                      String
   sku                       String
   status                    String
-  attributes                Json                       // Lưu trữ mảng các thuộc tính: [{ "name": "size", "value": "M", "price": 10 }, { "name": "color", "value": "red", "price": 0 }, { "name": "material", "value": "cotton", "price": 5 }]
+  value                String                      
+  isDeleted                 Boolean                    @default(false)
+  createdAt                 DateTime                   @default(now())
+  updatedAt                 DateTime                   @updatedAt
+  productVariantIngredients ProductVariantIngredient[]
+}
+
+
+model Ingredient {
+  id                        String                     @id @default(auto()) @map("_id") @db.ObjectId
+  userId                    String                     @db.ObjectId              // Thêm userId để xác định người sở hữu nguyên liệu
+  name                      String
+  unit                      String                     // Ví dụ: ml, g, kg, v.v.
+  description               String?
   isDeleted                 Boolean                    @default(false)
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt
@@ -57,20 +70,11 @@ model ProductVariantIngredient {
   ingredientId     String         @db.ObjectId
   ingredient       Ingredient     @relation(fields: [ingredientId], references: [id])
   quantity         Float          // Lượng nguyên liệu dùng cho variant cụ thể (ví dụ: 10.0 ml)
+  isDeleted        Boolean        @default(false)
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
 }
 
-model Ingredient {
-  id                        String                     @id @default(auto()) @map("_id") @db.ObjectId
-  userId                    String                     @db.ObjectId              // Thêm userId để xác định người sở hữu nguyên liệu
-  name                      String
-  unit                      String                     // Ví dụ: ml, g, kg, v.v.
-  description               String
-  createdAt                 DateTime                   @default(now())
-  updatedAt                 DateTime                   @updatedAt
-  productVariantIngredients ProductVariantIngredient[]
-}
 
 model Tag {
   id         String    @id @default(auto()) @map("_id") @db.ObjectId

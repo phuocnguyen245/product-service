@@ -31,6 +31,14 @@ export class ProductService {
         data: productPayload,
       });
 
+      await Promise.all(
+        productPayload.productVariant.map((variant) =>
+          tx.productVariant.create({
+            data: variant,
+          }),
+        ),
+      );
+
       return newProduct;
     });
     return newProductWithVariant;
@@ -64,7 +72,6 @@ export class ProductService {
                 name: true,
                 sku: true,
                 status: true,
-                attributes: true,
               },
               where: { isDeleted: false },
             },
@@ -132,7 +139,6 @@ export class ProductService {
             name: true,
             sku: true,
             status: true,
-            attributes: true,
           },
           where: { isDeleted: false },
         },
