@@ -19,6 +19,6 @@ async function bootstrap() {
 
   await new PrismaService().onModuleInit();
   await app.listen();
-  console.log('🚀 User Service is running on gRPC port 50051');
+  console.log('🚀 User Service is running on gRPC port 50052');
 }
 bootstrap();
