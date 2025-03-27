@@ -83,7 +83,6 @@ export class ProductService {
         this.prisma.product.count({ where: whereCondition }),
       ]);
 
-      // Đảm bảo rằng mảng sản phẩm và mảng productVariants của từng sản phẩm không null
       const safeProducts = (products || []).map((product) => ({
         ...product,
         productVariants: product.productVariants || [],

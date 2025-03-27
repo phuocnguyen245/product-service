@@ -7,6 +7,22 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum ProductStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum CategoryStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum ProductVariantStatus {
+  ACTIVE
+  INACTIVE
+}
+
 model Category {
   id          String    @id @default(auto()) @map("_id") @db.ObjectId
   name        String
@@ -25,11 +41,11 @@ model Product {
   userId          String           @db.ObjectId              // Thêm userId để xác định người sở hữu sản phẩm
   name            String
   slug            String           @unique
-  description     String
+  description     String?
   categoryId      String           @db.ObjectId
   category        Category         @relation(fields: [categoryId], references: [id])
   productVariants ProductVariant[]
-  status          String
+  status          ProductStatus @default(DRAFT)
   tagIds          String[]         @db.ObjectId
   isDeleted       Boolean          @default(false)
   createdAt       DateTime         @default(now())
@@ -42,8 +58,8 @@ model ProductVariant {
   product                   Product                    @relation(fields: [productId], references: [id])
   name                      String
   sku                       String
-  status                    String
-  value                String                      
+  status                    ProductVariantStatus       @default(INACTIVE)
+  value                     String                      
   isDeleted                 Boolean                    @default(false)
   createdAt                 DateTime                   @default(now())
   updatedAt                 DateTime                   @updatedAt

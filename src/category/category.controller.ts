@@ -1,46 +1,34 @@
-import {
-  Controller,
-  Get,
-  Post,
-  Put,
-  Delete,
-  Body,
-  Param,
-  Query,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
+import { Controller } from '@nestjs/common';
+import { GrpcMethod } from '@nestjs/microservices';
 import { CategoryService } from './category.service';
 import { Category } from '@prisma/client';
 
-@Controller('categories')
+@Controller()
 export class CategoryController {
   constructor(private categoryService: CategoryService) {}
 
-  @Post()
-  async create(
-    @Body('name') name: string,
-    @Query('parentId') parentId?: string,
-  ): Promise<Category> {
+  @GrpcMethod('CategoryService', 'Create')
+  async create(data: { name: string; parentId?: string }): Promise<Category> {
     try {
-      return await this.categoryService.create(name, parentId);
+      return await this.categoryService.create(data.name, data.parentId);
     } catch (error) {
       console.log(error);
       throw error;
     }
   }
 
-  @Get()
-  async findAll(): Promise<Category[]> {
-    return await this.categoryService.getAll();
+  @GrpcMethod('CategoryService', 'FindAll')
+  async findAll(): Promise<{ categories: Category[] }> {
+    const categories = await this.categoryService.getAll();
+    return { categories };
   }
 
-  @Get(':id')
-  async findOne(@Param('id') id: string): Promise<Category> {
+  @GrpcMethod('CategoryService', 'FindOne')
+  async findOne(data: { id: string }): Promise<Category> {
     try {
-      const category = await this.categoryService.getById(id);
+      const category = await this.categoryService.getById(data.id);
       if (!category) {
-        throw new HttpException('Category not found', HttpStatus.NOT_FOUND);
+        throw new Error('Category not found');
       }
       return category;
     } catch (error) {
@@ -49,33 +37,33 @@ export class CategoryController {
     }
   }
 
-  @Get('/parent/:parentId')
-  async findByParent(@Param('parentId') parentId: string): Promise<Category[]> {
+  @GrpcMethod('CategoryService', 'FindByParent')
+  async findByParent(data: {
+    id: string;
+  }): Promise<{ categories: Category[] }> {
     try {
-      return await this.categoryService.getByParentId(parentId);
+      const categories = await this.categoryService.getByParentId(data.id);
+      return { categories };
     } catch (error) {
       console.log(error);
       throw error;
     }
   }
 
-  @Put(':id')
-  async update(
-    @Param('id') id: string,
-    @Body('name') name: string,
-  ): Promise<Category> {
+  @GrpcMethod('CategoryService', 'Update')
+  async update(data: { id: string; name: string }): Promise<Category> {
     try {
-      return await this.categoryService.update(id, { name });
+      return await this.categoryService.update(data.id, { name: data.name });
     } catch (error) {
       console.log(error);
       throw error;
     }
   }
 
-  @Delete(':id')
-  async delete(@Param('id') id: string): Promise<{ message: string }> {
+  @GrpcMethod('CategoryService', 'Delete')
+  async delete(data: { id: string }): Promise<{ message: string }> {
     try {
-      return await this.categoryService.delete(id);
+      return await this.categoryService.delete(data.id);
     } catch (error) {
       console.log(error);
       throw error;

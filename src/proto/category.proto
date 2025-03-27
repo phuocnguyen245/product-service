@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package category;
+
+service CategoryService {
+  rpc Create (CreateCategoryRequest) returns (Category);
+  rpc FindAll (Empty) returns (Categories);
+  rpc FindOne (CategoryId) returns (Category);
+  rpc FindByParent (CategoryId) returns (Categories);
+  rpc Update (UpdateCategoryRequest) returns (Category);
+  rpc Delete (CategoryId) returns (DeleteResponse);
+}
+
+message Empty {}
+
+message Category {
+  string id = 1;
+  string name = 2;
+  string slug = 3;
+  int32 lft = 4;
+  int32 rgt = 5;
+  int32 level = 6;
+}
+
+message Categories {
+  repeated Category categories = 1;
+}
+
+message CreateCategoryRequest {
+  string name = 1;
+  optional string parentId = 2;
+}
+
+message CategoryId {
+  string id = 1;
+}
+
+message UpdateCategoryRequest {
+  string id = 1;
+  string name = 2;
+}
+
+message DeleteResponse {
+  string message = 1;
+}
