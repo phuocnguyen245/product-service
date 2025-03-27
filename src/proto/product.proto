@@ -65,11 +65,11 @@ message CreateProductRequest {
   string name = 2;
   string description = 3;
   string categoryId = 4;
-  repeated ProductVariantInput productVariants = 5;
+  repeated ProductVariantBody productVariants = 5;
   string status = 6;
 }
 
-message ProductVariantInput {
+message ProductVariantBody {
   string name = 1;
   string sku = 2;
   string status = 3;
